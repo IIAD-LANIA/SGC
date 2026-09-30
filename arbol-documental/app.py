@@ -11,6 +11,7 @@ Datos:
 Para actualizar un enlace se edita data/catalogo.csv en GitHub; la app se
 vuelve a desplegar sola con el nuevo commit.
 """
+import base64
 from html import escape
 from pathlib import Path
 import unicodedata
@@ -18,18 +19,19 @@ import unicodedata
 import pandas as pd
 import streamlit as st
 
-DATA = Path(__file__).parent / "data"
+from arbol_svg import AMARILLO, TIPO_COLOR, VERDE, VERDE_OSC, construir_svg, pagina_html
 
-TIPOS = {
-    "Manual": ("MC", "#2d4b72"),
-    "Procedimiento": ("P", "#3a4047"),
-    "Instructivo": ("I", "#56636f"),
-    "Guía o matriz": ("G", "#1b6c70"),
-    "Instructivo operativo": ("IO", "#80602c"),
-    "Forma (registro)": ("F", "#6b4c9d"),
-    "Otro": ("·", "#6b7470"),
-}
+BASE = Path(__file__).parent
+DATA = BASE / "data"
+LOGO = BASE / "assets" / "logo_ica_blanco.png"
+
+ABREV = {"Manual": "MC", "Procedimiento": "P", "Instructivo": "I", "Guía o matriz": "G",
+         "Instructivo operativo": "IO", "Forma (registro)": "F", "Otro": "·"}
+TIPOS = {t: (ABREV[t], c) for t, c in TIPO_COLOR.items()}
 NORMAS = ["ISO 17034", "ISO/IEC 17043"]
+NOMBRE_NORMA = {"ISO 17034": "ISO 17034:2016 · Productores de materiales de referencia",
+                "ISO/IEC 17043": "ISO/IEC 17043:2023 · Proveedores de ensayos de aptitud"}
+TRONCO7 = {"ISO 17034": "Requisitos técnicos y de producción de MR", "ISO/IEC 17043": "Requisitos del proceso de EA"}
 
 CORRECCIONES = [
     "**ISO 17034, 7.17.** El Visio asigna «GSA-SAD-P-014 Gestión del trabajo no conforme». "
@@ -48,11 +50,30 @@ CORRECCIONES = [
     "aparece en el árbol de ISO/IEC 17043. No hay documentos ubicados en el numeral 7.1 de ISO 17034.",
 ]
 
-st.set_page_config(page_title="Árbol documental IIAD", page_icon="🌳", layout="wide")
+st.set_page_config(page_title="Árbol documental IIAD · ICA", page_icon="🌳", layout="wide")
 
 st.markdown(
     """
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
     <style>
+      html, body, .stApp{font-family:"Source Sans 3","Segoe UI",Roboto,Arial,sans-serif}
+      .block-container{padding-top:3.4rem}
+      /* color institucional aunque no se cargue .streamlit/config.toml */
+      [data-baseweb="tag"]{background-color:__VERDE__ !important}
+      .stTabs [data-baseweb="tab-highlight"]{background-color:__VERDE__ !important}
+      .stTabs button[aria-selected="true"] p{color:__VERDE__ !important}
+      .ica-band{background:__VERDE__;border-radius:10px;padding:18px 24px;display:flex;align-items:center;gap:26px;
+                flex-wrap:wrap;border-bottom:5px solid __AMARILLO__;margin-bottom:.6rem}
+      .ica-band img{height:62px;width:auto}
+      .ica-band .sep{width:1px;align-self:stretch;background:rgba(255,255,255,.35)}
+      .ica-band .txt{color:#fff;min-width:0;flex:1 1 320px}
+      .ica-band .eb{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85;font-weight:600}
+      .ica-band h1{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;font-weight:700;font-size:2.2rem;
+                   line-height:1.05;margin:.15rem 0 .2rem;padding:0;color:#fff}
+      .ica-band .sub{font-size:.95rem;opacity:.9;margin:0}
+      [data-testid="stMetricValue"]{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;color:__VERDE_OSC__}
+      .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p{font-weight:600}
+      section[data-testid="stSidebar"]{border-right:3px solid __AMARILLO__}
       .arb-row{display:flex;align-items:baseline;gap:.5rem;padding:.2rem 0;flex-wrap:wrap}
       .arb-badge{display:inline-block;min-width:1.7rem;text-align:center;border-radius:4px;color:#fff;
                  font:700 .68rem ui-monospace,Menlo,Consolas,monospace;padding:.12rem .25rem;align-self:center}
@@ -66,7 +87,7 @@ st.markdown(
       .arb-path{font-size:.75rem;word-break:break-all}
       .arb-kids{border-left:1px solid rgba(128,128,128,.45);margin-left:.85rem;padding-left:.7rem}
     </style>
-    """,
+    """.replace("__VERDE_OSC__", VERDE_OSC).replace("__VERDE__", VERDE).replace("__AMARILLO__", AMARILLO),
     unsafe_allow_html=True,
 )
 
@@ -95,7 +116,11 @@ tiene_enlace = cat.set_index("codigo")["enlace"].str.strip().ne("").to_dict()
 with st.sidebar:
     st.header("Filtros")
     q = st.text_input("Buscar", placeholder="Código o nombre: P-028, homogeneidad, 3-406", key="q").strip()
-    tipos_sel = st.multiselect("Tipo de documento", list(TIPOS), default=list(TIPOS), key="tipos")
+    if hasattr(st, "pills"):
+        tipos_sel = st.pills("Tipo de documento", list(TIPOS), selection_mode="multi", default=list(TIPOS), key="tipos")
+    else:
+        tipos_sel = st.multiselect("Tipo de documento", list(TIPOS), default=list(TIPOS), key="tipos")
+    tipos_sel = list(tipos_sel) or list(TIPOS)  # ninguno marcado = todos
     solo_sin = st.toggle("Solo documentos sin enlace", key="solo_sin")
     st.divider()
     st.caption(
@@ -170,11 +195,18 @@ def conteo(df: pd.DataFrame) -> tuple[int, int]:
 
 
 # ---------- Encabezado ----------
-st.caption("LANIA · Área IIAD · Subgerencia de Análisis y Diagnóstico")
-st.title("Árbol documental IIAD")
-st.write(
-    "Documentos del sistema de gestión que evidencian cada requisito de ISO 17034 e ISO/IEC 17043, "
-    "ordenados según el Manual Técnico GSA-MC-SAD-003 V3."
+logo_b64 = base64.b64encode(LOGO.read_bytes()).decode() if LOGO.exists() else ""
+st.markdown(
+    f"""<div class="ica-band">
+      {f'<img src="data:image/png;base64,{logo_b64}" alt="Instituto Colombiano Agropecuario">' if logo_b64 else ""}
+      <div class="sep"></div>
+      <div class="txt">
+        <div class="eb">Subgerencia de Análisis y Diagnóstico · LANIA · Área IIAD</div>
+        <h1>Árbol documental del sistema de gestión</h1>
+        <p class="sub">Documentos que evidencian cada requisito de ISO 17034 e ISO/IEC 17043,
+        según el Manual Técnico GSA-MC-SAD-003 V3.</p>
+      </div></div>""",
+    unsafe_allow_html=True,
 )
 m = st.columns(3)
 for col, norma in zip(m, NORMAS):
@@ -183,33 +215,67 @@ for col, norma in zip(m, NORMAS):
 a, n = sum(tiene_enlace.values()), len(cat)
 m[2].metric("Catálogo completo", f"{a} / {n}")
 
-tabs = st.tabs(NORMAS + ["Catálogo", "Correcciones al Visio"])
+tabs = st.tabs(["Árbol ISO 17034", "Árbol ISO/IEC 17043", "Lista por numeral", "Catálogo", "Correcciones al Visio"])
+
+
+def estado_de(r) -> str:
+    if not filtrando:
+        return "n"
+    return "hit" if coincide(r) else "dim"
+
+
+apariciones = (
+    arb[arb["numeral"] != "Base"][["codigo", "norma", "numeral"]].drop_duplicates().to_dict("records")
+)
+
+
+def donde_factory(norma):
+    def donde(codigo, numeral):
+        otras = [f'{a["norma"]} {a["numeral"]}' for a in apariciones
+                 if a["codigo"] == codigo and not (a["norma"] == norma and a["numeral"] == numeral)]
+        return "; ".join(otras)
+    return donde
+
 
 for tab, norma in zip(tabs[:2], NORMAS):
     with tab:
+        st.caption(NOMBRE_NORMA[norma] + ". Tronco: capítulos · ramas: numerales · hojas: documentos. "
+                   "Pase el cursor sobre un documento para ver el detalle.")
         sub = arb[arb["norma"] == norma]
-        algo = False
-        for capitulo, dcap in sub.groupby("capitulo", sort=False):
-            numerales = []
-            for (numeral, req), dnum in dcap.groupby(["numeral", "requisito"], sort=False):
-                cuerpo = render_bloque(dnum.to_dict("records"))
-                if cuerpo:
-                    numerales.append((numeral, req, dnum, cuerpo))
-            if not numerales:
-                continue
-            algo = True
-            a, n = conteo(dcap)
-            st.subheader(capitulo)
-            st.caption(f"{a} de {n} documentos con enlace")
-            for numeral, req, dnum, cuerpo in numerales:
-                a, n = conteo(dnum)
-                etiqueta = f"**{numeral}** · {req}" if numeral != "Base" else f"**{req}**"
-                with st.expander(f"{etiqueta}   ({a}/{n})", expanded=filtrando or numeral == "Base"):
-                    st.markdown(cuerpo, unsafe_allow_html=True)
-        if not algo:
-            st.info("Ningún documento coincide con la búsqueda o los filtros.")
+        svg = construir_svg(sub, norma, donde_factory(norma), estado_de, TRONCO7[norma])
+        pagina = pagina_html(svg, enfocar=bool(q))
+        if hasattr(st, "iframe"):
+            st.iframe(pagina, height=880)
+        else:  # versiones anteriores de Streamlit
+            import streamlit.components.v1 as components
+            components.html(pagina, height=880, scrolling=False)
 
 with tabs[2]:
+    norma = st.radio("Norma", NORMAS, horizontal=True, key="norma_lista", label_visibility="collapsed")
+    sub = arb[arb["norma"] == norma]
+    algo = False
+    for capitulo, dcap in sub.groupby("capitulo", sort=False):
+        numerales = []
+        for (numeral, req), dnum in dcap.groupby(["numeral", "requisito"], sort=False):
+            cuerpo = render_bloque(dnum.to_dict("records"))
+            if cuerpo:
+                numerales.append((numeral, req, dnum, cuerpo))
+        if not numerales:
+            continue
+        algo = True
+        a, n = conteo(dcap)
+        titulo_cap = capitulo if not capitulo.startswith("7 ") else "7 · " + TRONCO7[norma]
+        st.subheader(titulo_cap)
+        st.caption(f"{a} de {n} documentos con enlace")
+        for numeral, req, dnum, cuerpo in numerales:
+            a, n = conteo(dnum)
+            etiqueta = f"**{numeral}** · {req}" if numeral != "Base" else f"**{req}**"
+            with st.expander(f"{etiqueta}   ({a}/{n})", expanded=filtrando or numeral == "Base"):
+                st.markdown(cuerpo, unsafe_allow_html=True)
+    if not algo:
+        st.info("Ningún documento coincide con la búsqueda o los filtros.")
+
+with tabs[3]:
     donde = (
         arb[arb["numeral"] != "Base"]
         .groupby(["codigo", "norma"])["numeral"]
@@ -240,7 +306,7 @@ with tabs[2]:
         mime="text/csv",
     )
 
-with tabs[3]:
+with tabs[4]:
     st.write("Diferencias entre este árbol y los diagramas Visio originales:")
     st.markdown("\n".join(f"{i}. {c}" for i, c in enumerate(CORRECCIONES, 1)))
 

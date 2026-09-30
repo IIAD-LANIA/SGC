@@ -1,0 +1,8 @@
+# Tema institucional ICA para las apps del repositorio SGC.
+# Streamlit Community Cloud lee este archivo desde la raíz del repositorio.
+[theme]
+base = "light"
+primaryColor = "#0b5e36"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#eef3ef"
+textColor = "#1c231f"
