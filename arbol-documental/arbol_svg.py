@@ -9,19 +9,11 @@ Raíces: los manuales GSA-MC-SAD-003 y GSA-MC-SAD-001.
 from html import escape
 import json
 
-# Paleta institucional
-VERDE = "#0b5e36"
-VERDE_OSC = "#07432a"
-AMARILLO = "#f2b705"
-TIPO_COLOR = {
-    "Manual": "#1f4e79",
-    "Procedimiento": "#3a4047",
-    "Instructivo": "#5a6773",
-    "Guía o matriz": "#15706f",
-    "Instructivo operativo": "#8a6428",
-    "Forma (registro)": "#6b4c9d",
-    "Otro": "#6b7470",
-}
+# Paleta institucional (ver tema.py)
+from tema import FUENTE_URL, LIMA, TEXTO, TIPO_ESTILO, VERDE, VERDE_OSC
+
+AMARILLO = LIMA  # color de las ramas (subnumerales)
+TIPO_COLOR = {t: v[0] for t, v in TIPO_ESTILO.items()}
 
 BOX_W, BOX_H = 190, 52          # subnumeral (rama)
 GAP_TRUNK = 70                  # del tronco a la caja del subnumeral
@@ -221,9 +213,9 @@ def construir_svg(sub, norma_corta, donde, estado_de, tronco7):
 
 
 PLANTILLA = r"""
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="__FUENTE_URL__">
 <style>
-  html,body{margin:0;height:100%;background:#ffffff;font-family:"Source Sans 3","Segoe UI",Roboto,Arial,sans-serif}
+  html,body{margin:0;height:100%;background:#ffffff;font-family:"Nunito Sans",Verdana,Arial,sans-serif}
   #wrap{position:relative;height:100%;overflow:hidden;background:
       radial-gradient(circle at 1px 1px,#e3e9e4 1px,transparent 0) 0 0/22px 22px, #fbfcfb;
       border:1px solid #d5ddd7;border-radius:8px;cursor:grab;touch-action:none}
@@ -232,39 +224,39 @@ PLANTILLA = r"""
   .trunk{stroke:__VERDE_OSC__;stroke-width:12;stroke-linecap:round;fill:none}
   .limb{stroke:__VERDE__;stroke-width:4;fill:none}
   .twig{stroke:#8fa597;stroke-width:1.4;fill:none}
-  .nbox{fill:__AMARILLO__;stroke:#c99700;stroke-width:1}
-  .nn{font:700 16px "Barlow Condensed","Arial Narrow",Arial,sans-serif;fill:#2a2100}
-  .nt{font:600 10.5px "Source Sans 3",Arial,sans-serif;fill:#3b3100}
-  .chapter rect{fill:__VERDE__;stroke:__VERDE_OSC__;stroke-width:2}
+  .nbox{fill:__AMARILLO__;stroke:#7fa01c;stroke-width:1}
+  .nn{font:800 16px "Nunito Sans",Verdana,Arial,sans-serif;fill:#000000}
+  .nt{font:600 10.5px "Nunito Sans",Verdana,Arial,sans-serif;fill:#1f2a05}
+  .chapter rect{fill:__VERDE_OSC__;stroke:__VERDE_OSC__;stroke-width:2}
   .chapter{cursor:zoom-in}
-  .cn{font:700 34px "Barlow Condensed","Arial Narrow",Arial,sans-serif;fill:__AMARILLO__}
-  .ct{font:700 14px "Source Sans 3",Arial,sans-serif;fill:#ffffff}
+  .cn{font:700 34px "Nunito Sans",Verdana,Arial,sans-serif;fill:__AMARILLO__}
+  .ct{font:700 14px "Nunito Sans",Verdana,Arial,sans-serif;fill:#ffffff}
   .leaf .card{fill:#ffffff;stroke:#b8c4bc;stroke-width:1}
   .leaf:hover .card{stroke:__VERDE__;stroke-width:2}
   .leaf.nolink .card{stroke-dasharray:4 3}
-  .lc{font:600 11px "IBM Plex Mono",Consolas,monospace;fill:#1c231f}
-  .lv{font:500 10px "Source Sans 3",Arial,sans-serif;fill:#6a756e}
+  .lc{font:600 11px "Nunito Sans",Verdana,Arial,sans-serif;fill:#1c231f}
+  .lv{font:500 10px "Nunito Sans",Verdana,Arial,sans-serif;fill:#6a756e}
   .lw{fill:#b26b00}
-  .lt{font:400 11px "Source Sans 3",Arial,sans-serif;fill:#3f4a44}
+  .lt{font:400 11px "Nunito Sans",Verdana,Arial,sans-serif;fill:#3f4a44}
   .dot.on{fill:__VERDE__}.dot.off{fill:none;stroke:#b8c4bc;stroke-width:1.4}
   .arrow{stroke:#fff;stroke-width:1.6;fill:none;stroke-linecap:round}
   a .leaf{cursor:pointer}
-  .leaf.hit .card{stroke:#d18f00;stroke-width:3;fill:#fff8e1}
+  .leaf.hit .card{stroke:#3366CC;stroke-width:3;fill:#EEF3FC}
   .leaf.dim,.branch.dim .nbox,.branch.dim text,.branch.dim .limb{opacity:.16}
-  .root rect{fill:#1f4e79}.root text{font:700 14px "IBM Plex Mono",Consolas,monospace;fill:#fff}
+  .root rect{fill:#3366CC}.root text{font:700 14px "Nunito Sans",Verdana,Arial,sans-serif;fill:#fff}
   a .root{cursor:pointer}
   #tools{position:absolute;right:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;
          background:rgba(255,255,255,.92);border:1px solid #d5ddd7;border-radius:8px;padding:5px 6px;max-width:calc(100% - 20px)}
   #tools button{border:1px solid #c7d1ca;background:#fff;border-radius:6px;min-width:34px;height:32px;font:600 14px Arial;color:#1c231f;cursor:pointer;padding:0 10px}
   #tools button:hover{border-color:__VERDE__;color:__VERDE__}
-  #tools .lab{font:12px "Source Sans 3",Arial;color:#6a756e;align-self:center;margin-right:2px}
-  #tools button.ch{background:__VERDE__;color:#fff;border-color:__VERDE__;font-family:"Barlow Condensed","Arial Narrow",Arial;font-size:16px;min-width:30px;padding:0 6px}
+  #tools .lab{font:12px "Nunito Sans",Verdana,Arial;color:#6a756e;align-self:center;margin-right:2px}
+  #tools button.ch{background:__VERDE__;color:#fff;border-color:__VERDE__;font-family:"Nunito Sans",Verdana,Arial;font-size:16px;min-width:30px;padding:0 6px}
   #tools button.ch:hover{background:__VERDE_OSC__;color:__AMARILLO__}
-  #legend{position:absolute;left:10px;bottom:10px;background:rgba(255,255,255,.94);border:1px solid #d5ddd7;border-radius:6px;padding:7px 10px;font:12px "Source Sans 3",Arial;color:#3f4a44;display:flex;flex-wrap:wrap;gap:6px 12px;max-width:calc(100% - 40px)}
+  #legend{position:absolute;left:10px;bottom:10px;background:rgba(255,255,255,.94);border:1px solid #d5ddd7;border-radius:6px;padding:7px 10px;font:12px "Nunito Sans",Verdana,Arial;color:#3f4a44;display:flex;flex-wrap:wrap;gap:6px 12px;max-width:calc(100% - 40px)}
   #legend span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
   #legend i{width:10px;height:12px;display:inline-block;border-radius:2px}
-  #hint{position:absolute;left:10px;top:10px;max-width:calc(100% - 520px);font:12px "Source Sans 3",Arial;color:#6a756e;background:rgba(255,255,255,.9);padding:3px 8px;border-radius:5px}
-  #tip{position:absolute;pointer-events:none;background:#16231c;color:#fff;font:13px/1.35 "Source Sans 3",Arial;padding:8px 10px;border-radius:6px;max-width:330px;box-shadow:0 6px 18px rgba(0,0,0,.25);display:none;z-index:5}
+  #hint{position:absolute;left:10px;top:10px;max-width:calc(100% - 520px);font:12px "Nunito Sans",Verdana,Arial;color:#6a756e;background:rgba(255,255,255,.9);padding:3px 8px;border-radius:5px}
+  #tip{position:absolute;pointer-events:none;background:#16231c;color:#fff;font:13px/1.35 "Nunito Sans",Verdana,Arial;padding:8px 10px;border-radius:6px;max-width:330px;box-shadow:0 6px 18px rgba(0,0,0,.25);display:none;z-index:5}
   #tip .m{color:#bfd3c6;font-size:12px}#tip .w{color:#ffd166;font-size:12px}
 </style>
 <div id="wrap">
@@ -334,6 +326,6 @@ def pagina_html(svg: str, enfocar: bool, capitulos=("3", "4", "5", "6", "7", "8"
                 '<span style="color:#b26b00">✎ corregido frente al Visio</span>'
                 '<span style="color:#6a756e">· Arrastre para mover · rueda para acercar · clic en un capítulo o documento</span>') % VERDE
     botones = "".join(f'<button class="ch" data-ch="{c}" title="Capítulo {c}">{c}</button>' for c in capitulos)
-    return (PLANTILLA.replace("__SVG__", svg).replace("__LEGEND__", leyenda).replace("__CHAPTERS__", botones)
+    return (PLANTILLA.replace("__FUENTE_URL__", FUENTE_URL).replace("__SVG__", svg).replace("__LEGEND__", leyenda).replace("__CHAPTERS__", botones)
             .replace("__VERDE_OSC__", VERDE_OSC).replace("__VERDE__", VERDE).replace("__AMARILLO__", AMARILLO)
             .replace("__FOCUS__", json.dumps(bool(enfocar))))

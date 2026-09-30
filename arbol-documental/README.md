@@ -7,7 +7,9 @@ Guía de consulta, para el personal del Área IIAD del LANIA (ICA), de los docum
 ```
 arbol-documental/      Carpeta de esta app dentro del repositorio SGC
 app.py                 Aplicación Streamlit (solo lectura)
-arbol_svg.py           Dibujo del árbol: tronco = capítulos, ramas = numerales, hojas = documentos
+tabla_periodica.py     Vista principal: tabla periódica de numerales con panel de documentos
+arbol_svg.py           Vista secundaria: árbol (tronco = capítulos, ramas = numerales, hojas = documentos)
+tema.py                Colores y tipografía institucionales (Guía para editores web del ICA, 2025)
 assets/logo_ica_blanco.png  Logo institucional para el encabezado
 data/catalogo.csv      Un renglón por documento: código, nombre, tipo, versión, ENLACE, nota
 data/arbol.csv         Un renglón por aparición de un documento en un numeral de cada norma
@@ -20,10 +22,14 @@ El tema institucional (verde ICA) está en `.streamlit/config.toml`, en la **ra�
 
 ## Vistas
 
-- **Árbol ISO 17034 / Árbol ISO/IEC 17043:** el sistema completo como árbol. Botones 3–8 para ir a cada capítulo, rueda del ratón para acercar, arrastrar para mover. Al pasar el cursor sobre un documento se ve su nombre completo, versión y en qué otros numerales aparece; al hacer clic se abre el enlace. La búsqueda resalta los documentos que coinciden y atenúa el resto.
-- **Lista por numeral:** la misma información en listas desplegables.
+- **ISO 17034 / ISO/IEC 17043 (tabla periódica):** cada fila es un capítulo de la norma, con su color de familia, y cada casilla es un numeral. La casilla muestra cuántos documentos lo evidencian y una barra con cuántos tienen enlace. Al seleccionarla, el panel de la derecha lista sus documentos con el botón para abrirlos y los otros numerales donde se usan. La búsqueda marca las casillas que contienen el documento y abre la primera.
 - **Catálogo:** tabla de los 81 documentos con los numerales donde aparece cada uno, descargable en CSV.
-- **Correcciones al Visio:** diferencias entre este árbol y los diagramas originales.
+- **Árbol completo:** el sistema como árbol, útil como vista general.
+- **Correcciones al Visio:** diferencias con los diagramas originales.
+
+## Identidad visual
+
+Colores y tipografía según la *Guía para editores web y gestores de contenido del ICA* (2025): fondo blanco, títulos en negro (#000000), cuerpo de texto #4B4B4B y tipografía Nunito Sans. Los acentos (verde #329D4A, verde oscuro #33773B, lima #A4CB2F, ocre #BA9437 y azul GOV.CO #3366CC) se tomaron de las piezas de la misma guía y están en `tema.py`. La guía indica validar con la Oficina Asesora de Comunicaciones la aplicación de colores en sitios específicos.
 
 ## Actualizar enlaces o documentos
 
